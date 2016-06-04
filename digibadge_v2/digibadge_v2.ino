@@ -165,7 +165,7 @@ void loop(){
   int left = digitalRead(S_LEFT);
   int sel = digitalRead(S_SEL);
   if (up == LOW){
-    //Increase brightness, to max of 10.
+    //Increase brightness, to max of 25
     //Serial.println("Increasing brightness");
     if (bright < 25) {
       bright ++;
@@ -173,7 +173,7 @@ void loop(){
     }
   }
   else if (down == LOW){
-    //Decrease brightness, to min of 1)
+    //Decrease brightness, to min of 0)
     //Serial.println("Decreasing Brightness");
     if (bright > 0) {
       bright --;
