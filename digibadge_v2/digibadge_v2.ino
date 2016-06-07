@@ -48,6 +48,7 @@
 
 #define SD_CS    10   // Chip select line for SD card
 #define SD_CD    7    // Card Detect line for SD card
+#define SD_POW   A2   // Power Supply line for SD card
 #define TFT_CS   9    // Chip select line for TFT display
 #define TFT_DC   8    // Data/command line for TFT
 #define TFT_RST  5    // Reset line for TFT (or connect to +5V)
@@ -77,8 +78,6 @@ void setup()
   //Serial.begin(9600);
   //Serial.println("Digibadge Starting");
   //Serial.println("Debugging Serial mode enabled.");
-  pinMode(TFT_DIM, OUTPUT);
-  setLight(bright);
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
   tft.fillScreen(ST7735_BLACK);
@@ -87,17 +86,22 @@ void setup()
   tft.setTextSize(1);
   tft.setCursor(0,0);
   tft.print("DigiBadge V2 Initializing.");
+  //Don't turn the light on until screen has started.
+  //This will prevent seeing any left over image artifacts.
+  pinMode(TFT_DIM, OUTPUT);
+  setLight(bright);
   tft.setCursor(0,16);
   tft.print("Checking SD Card...");
   pinMode(SD_CD, INPUT_PULLUP);
   tft.setCursor(0, 24);
+  pinMode(SD_POW, OUTPUT);
   SDInit = startSD();
   tft.setCursor(0, 32);
   //Initialize the navigation stick.
   tft.print("Initializing stick"); 
   pinMode(S_UP, INPUT_PULLUP);
   pinMode(S_DOWN, INPUT_PULLUP);
-  //pinMode(S_LEFT, INPUT_PULLUP);
+  pinMode(S_LEFT, INPUT_PULLUP);
   pinMode(S_RIGHT, INPUT_PULLUP);
   pinMode(S_SEL, INPUT_PULLUP);
   tft.setCursor(0, 40);
@@ -141,6 +145,7 @@ void loop(){
     tft.print("Returning to badge mode...");
     delay(1000);
     mode = 0; //Set the mode
+    drawBadge(badge);
   }
   if ((! SDInit) && (SDCard == 0)){
     //We have an uninitialized SD card.
@@ -165,7 +170,7 @@ void loop(){
   int left = digitalRead(S_LEFT);
   int sel = digitalRead(S_SEL);
   if (up == LOW){
-    //Increase brightness, to max of 25
+    //Increase brightness, to max of 10.
     //Serial.println("Increasing brightness");
     if (bright < 25) {
       bright ++;
@@ -173,7 +178,7 @@ void loop(){
     }
   }
   else if (down == LOW){
-    //Decrease brightness, to min of 0)
+    //Decrease brightness, to min of 1)
     //Serial.println("Decreasing Brightness");
     if (bright > 0) {
       bright --;
@@ -185,6 +190,7 @@ void loop(){
     //Check if we have an SD card
     if (SDCard == 1) {
       //No SDCard found
+      digitalWrite(SD_POW, LOW); //Turn off power to SD card.
       tft.fillScreen(ST7735_BLACK);
       tft.setCursor(0,0);
       tft.setTextColor(ST7735_WHITE);
@@ -351,7 +357,7 @@ bool startSD(){
     return false;
   }
   //Serial.println("SD Card found. Attempting load.");
-  //SD.begin(SD_CS);
+  digitalWrite(SD_POW, HIGH); //Apply power to SD card.
   if (! SD.begin(SD_CS)){
     //Serial.println("SD Card load failed.");
     tft.print("SD Card load failed");
