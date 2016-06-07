@@ -48,7 +48,6 @@
 
 #define SD_CS    10   // Chip select line for SD card
 #define SD_CD    7    // Card Detect line for SD card
-#define SD_POW   A2   // Power Supply line for SD card
 #define TFT_CS   9    // Chip select line for TFT display
 #define TFT_DC   8    // Data/command line for TFT
 #define TFT_RST  5    // Reset line for TFT (or connect to +5V)
@@ -94,7 +93,6 @@ void setup()
   tft.print("Checking SD Card...");
   pinMode(SD_CD, INPUT_PULLUP);
   tft.setCursor(0, 24);
-  pinMode(SD_POW, OUTPUT);
   SDInit = startSD();
   tft.setCursor(0, 32);
   //Initialize the navigation stick.
@@ -190,7 +188,6 @@ void loop(){
     //Check if we have an SD card
     if (SDCard == 1) {
       //No SDCard found
-      digitalWrite(SD_POW, LOW); //Turn off power to SD card.
       tft.fillScreen(ST7735_BLACK);
       tft.setCursor(0,0);
       tft.setTextColor(ST7735_WHITE);
@@ -357,7 +354,6 @@ bool startSD(){
     return false;
   }
   //Serial.println("SD Card found. Attempting load.");
-  digitalWrite(SD_POW, HIGH); //Apply power to SD card.
   if (! SD.begin(SD_CS)){
     //Serial.println("SD Card load failed.");
     tft.print("SD Card load failed");
