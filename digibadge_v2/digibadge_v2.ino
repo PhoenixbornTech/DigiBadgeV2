@@ -51,8 +51,8 @@
 #define TFT_CS   9    // Chip select line for TFT display
 #define TFT_DC   8    // Data/command line for TFT
 #define TFT_RST  5    // Reset line for TFT (or connect to +5V)
-#define MaxFiles 30   // Maximum number of files to load.
-#define FileLen  9   // Maimum length of file name
+#define MaxFiles 20   // Maximum number of files to load.
+#define FileLen  13   // Maimum length of file name
 #define TFT_DIM  6    // TFT Backlight dimmer
 #define S_UP     A1   // Navigation stick up/Increase brightness
 #define S_DOWN   4    // Navigation stick down/Dcecrease Brightness
@@ -71,12 +71,15 @@ int badge = 0; // 0 is Yellow, 1 is Red, 2 is Green
 int bright = 13; //Brightness from 0-25, auto-set in middle.
 int steps = 0; //To determine when to change slideshow image.
 int image = 0;
+long vcc = 0;
+bool lowbat = false;
 
 void setup()
 {
   //Serial.begin(9600);
   //Serial.println("Digibadge Starting");
   //Serial.println("Debugging Serial mode enabled.");
+  //Start up screen functions.
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
   tft.fillScreen(ST7735_BLACK);
@@ -106,14 +109,37 @@ void setup()
   delay(100);
   tft.print("Stick initialized");
   delay(100);
+  //Check battery voltage.
+  vcc = readVcc();
+  if (vcc < 2200){
+    //Battery voltage < 2.2v
+    //Single AAA cell drops sharply at 1.1v, and we have two in series.
+    //Battery depletion is imminent, as BOD kicks in at 1.8v
+    lowbat = true;
+  }
+  int v1 = vcc/1000;
+  int v2 = (vcc - v1) / 100;
   tft.setCursor(0, 54);
-  tft.print("For code & schematics");
+  tft.print("Battery: ");
+  if (lowbat) {
+    //If our battery is low, print the battery voltage in red.
+    tft.setTextColor(ST7735_RED);
+  }
+  tft.print(v1);
+  tft.print(".");
+  tft.print(v2);
+  //Revert to normal text color
+  tft.setTextColor(ST7735_WHITE);
+  tft.print("v");
+  //Print information.
   tft.setCursor(0, 62);
+  tft.print("For code & schematics");
+  tft.setCursor(0, 70);
   tft.print("visit www.matchfire.net");
   delay(100);
-  tft.setCursor(0, 78);
-  tft.print("Created by Jason LeClare");
   tft.setCursor(0, 86);
+  tft.print("Created by Jason LeClare");
+  tft.setCursor(0, 94);
   tft.print("2016");
   delay(2500);
   //Initial badge or image draw
@@ -162,6 +188,21 @@ void loop(){
     tft.setCursor(0, 16);
     SDInit = startSD();
   }  
+  //Now, check the battery voltage.
+  //This won't work if we're powered via FTDI
+  //Generally, if we're powered via FTDI, battery voltage is irrelevant.
+  vcc = readVcc(); //Returns the millivoltage of the batteries.
+  if ((vcc < 2200) and (lowbat == false)) {
+    //Same low battery check as startup, except ignored if lowbat is already set.
+    lowbat = true;
+  }
+  else if ((vcc > 2500) and (lowbat == true)) {
+    //If we previously had a low battery and the voltage is now much higher,
+    //Change lowbat to false. So that we don't get rapid switches
+    //with voltage fluctuation, this is a bit higher than the lowbat threshold.
+    lowbat = false;
+  }
+  //Now go to command reading.
   int up = digitalRead(S_UP);
   int down = digitalRead(S_DOWN);
   int right = digitalRead(S_RIGHT);
@@ -307,6 +348,19 @@ void setLight(int l) {
   // After that, there are 26 levels of brightness, at 10 each (Including one at 0).
 }
 
+void drawLowBat(int x, int y) {
+  //Draws a low battery symbol with top-left at X,Y.
+  //This is designed to be a bit intrusive
+  //However, it IS designed to be a bit out of the way so it won't cover up a badge.
+  //It fills a black background and adds the battery on top of that
+  //To make the symbol visible on all badges and images.
+  tft.fillRect(x,y,x+22,y+11, ST7735_BLACK);
+  tft.fillRect(x+2,y+2,x+16,y+7, ST7735_RED);
+  tft.fillRect(x+18,y+4,x+2,y+3, ST7735_RED);
+  tft.drawLine(x+8,y+10,x+13,y, ST7735_BLACK);
+  tft.drawLine(x+7,y+10,x+12,y, ST7735_BLACK);
+}
+
 void drawBadge(int b) {
   //Color Communication Badges
   //For more information, see
@@ -343,6 +397,10 @@ void drawBadge(int b) {
   //Set colors back to default.
   tft.setTextSize(1);
   tft.setTextColor(ST7735_WHITE);
+  if (lowbat) {
+    //If our battery is low, show the low battery symbol
+    drawLowBat(0,0);
+  }
 }
 
 bool startSD(){
@@ -539,7 +597,10 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
     tft.fillTriangle(146, 2, 157, 13, 146, 24, ST7735_BLACK);
     tft.fillTriangle(147, 5, 155, 13, 147, 21, ST7735_WHITE);
   }
-
+  if (lowbat) {
+    //If our battery is low, show the low battery symbol
+    drawLowBat(0,0);
+  }
   bmpFile.close();
   //if(!goodBmp) Serial.println("BMP format not recognized.");
 }
@@ -563,3 +624,19 @@ uint32_t read32(File f) {
   ((uint8_t *)&result)[3] = f.read(); // MSB
   return result;
 }
+
+long readVcc() {
+  //Using method prodivded at http://provideyourown.com/2012/secret-arduino-voltmeter-measure-battery-voltage/
+  //Read the 1.1V internal reference against AVcc
+  // Set the reference to VCC and measure the difference between the 1.1v and reference.
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  delay(2); //Allow Vref to settle.
+  ADCSRA |= _BV(ADSC); // Start conversion
+  while (bit_is_set(ADCSRA,ADSC)); // measuring
+  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+  uint8_t high = ADCH; // unlocks both
+  long result = (high<<8) | low;
+  result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  return result; // Vcc in millivolts
+}
+
