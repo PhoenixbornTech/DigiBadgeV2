@@ -15,6 +15,11 @@
 //It currently won't check if the file is the proper type of bmp file (24-bit), so a wrong bmp
 //will fail to load.
 //
+//Additionally, inserting an SD card into the socket causes the device to reset. I'm fairly sure
+//that this is caused by a power spike, but time constraints made it impractical to fix before
+//BronyCon. The hotswap functionality will remain in the program so I don't have to re-write it
+//once I solve the problem with the DigiBadge Version 2.1
+//
 //By default, MaxFiles is set to 20 files, at 13 character length (4 characters for file extension,
 //8 for name, and one for null terminator). Increasing MaxFiles increases global variable usage
 //which is already pretty high (73%). In my tests, around 75-80% memory usage makes the badge do
@@ -32,13 +37,10 @@
 //But remember that if they're all on, the program won't run as the memory usage will go abouve
 //the 75%-80% mark.
 //
-//This version of the code is untested as I haven't recieved the final prototype yet, but I expect
-//that when I get it in the next few days, I'll be able to upload it and have it work.
-//The changes from the working prototype are that the "Left" stick pin is different, and the stick
-//"Ground" was tied to a pin. Additionally, there was no resistor in the Card Detect line, but that
-//does not change the code reading that line.
+//This version of the code is mostly untested. I've verified that it worked with the final prototype,
+//but there have been some changes (See: voltage measurement) that SHOULD work but are untested.
 //
-//This wall of commentary was written on June 2, 2016 by Andon.
+//This wall of commentary was updated on June 10, 2016 by Andon.
 //Happy hacking!
 
 #include <Adafruit_GFX.h>    // Core graphics library
