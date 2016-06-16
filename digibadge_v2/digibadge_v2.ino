@@ -1,5 +1,6 @@
-//DigiBadge Version 2 code by Jason "Andon" LeClare
+//DigiBadge V2 code by Jason "Andon" LeClare
 //Includes code from Adafruit ST7735 examples
+//Code Version 1.0
 //
 //Basic functions include three modes:
 //Mode One: Color Badge. Switches between Red/Green/Yellow badges.
@@ -15,7 +16,7 @@
 //It currently won't check if the file is the proper type of bmp file (24-bit), so a wrong bmp
 //will fail to load.
 //
-//Additionally, inserting an SD card into the socket causes the device to reset. I'm fairly sure
+//Additionally, inserting an SD card into the socket (sometimes) causes the device to reset. I'm fairly sure
 //that this is caused by a power spike, but time constraints made it impractical to fix before
 //BronyCon. The hotswap functionality will remain in the program so I don't have to re-write it
 //once I solve the problem with the DigiBadge Version 2.1
@@ -37,8 +38,8 @@
 //But remember that if they're all on, the program won't run as the memory usage will go abouve
 //the 75%-80% mark.
 //
-//This version of the code is mostly untested. I've verified that it worked with the final prototype,
-//but there have been some changes (See: voltage measurement) that SHOULD work but are untested.
+//This version of the code is the "Launch Ready" code. It's what I'll be loading up onto the V2s
+//that I'll be selling at BronyCon!
 //
 //This wall of commentary was updated on June 10, 2016 by Andon.
 //Happy hacking!
@@ -119,8 +120,11 @@ void setup()
     //Battery depletion is imminent, as BOD kicks in at 1.8v
     lowbat = true;
   }
+  //Get the full volts.
   int v1 = vcc/1000;
-  int v2 = (vcc - v1) / 100;
+  //Remove the full volts, then get the partial volts.
+  //Dividing by 100 turns this into a single decimal, IE 2.9v
+  int v2 = (vcc - (v1*1000)) / 100;
   tft.setCursor(0, 54);
   tft.print("Battery: ");
   if (lowbat) {
@@ -189,6 +193,11 @@ void loop(){
     tft.print("Checking SD Card...");
     tft.setCursor(0, 16);
     SDInit = startSD();
+    tft.setCursor(0, 24);
+    tft.print("Returning to Badge mode...");
+    //Wait so we can actually read it.
+    delay(1000);
+    drawBadge(badge);
   }  
   //Now, check the battery voltage.
   //This won't work if we're powered via FTDI
@@ -421,6 +430,10 @@ bool startSD(){
   }
   //Serial.println("SD Card loaded successfully.");
   tft.print("SD Card loaded ");
+  //Set the file number to 0. This will allow re-initializing of SD cards without adding files.
+  //This will overwrite any old filenames, and even if there are fewer files, nothing beyond fnum
+  //will be loaded.
+  fnum = 0;
   //Serial.println("Loading list of BMP files.");
   listSDFiles();
   //Serial.print(fnum);
