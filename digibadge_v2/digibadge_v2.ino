@@ -1,6 +1,6 @@
 //DigiBadge V2 code by Jason "Andon" LeClare
 //Includes code from Adafruit ST7735 examples
-//Code Version 1.0
+//Code Version 1.1
 //
 //Basic functions include three modes:
 //Mode One: Color Badge. Switches between Red/Green/Yellow badges.
@@ -10,6 +10,12 @@
 //If no SD card is detected, then Modes Two and Three will be disabled.
 //If only one image is detected on the SD card, then Mode Two will be disabled.
 //
+//The ATMega328 microcontroller has a 1.8v minimum voltage selected, but at voltages that low,
+//the screen's backlight is useless. I've programmed in a low battery warning at about 2.65v,
+//and the ATMega328 will enter a 'permanent' sleep mode at 2.5v. This sleep mode will only be
+//broken if the device is reset - But if the battery voltage is too low, then it'll just go
+//right back to sleep.
+//
 //The program detects insertion and removal of SD cards, and will load and re-load accordingly.
 //When an SD card is loaded, or if the badge is started with an SD card loaded, it will find the
 //first MaxFiles (set below) number of .bmp files and attempt to load them.
@@ -18,19 +24,19 @@
 //
 //Additionally, inserting an SD card into the socket (sometimes) causes the device to reset. I'm fairly sure
 //that this is caused by a power spike, but time constraints made it impractical to fix before
-//BronyCon. The hotswap functionality will remain in the program so I don't have to re-write it
-//once I solve the problem with the DigiBadge Version 2.1
+//BronyCon. The hotswap functionality remains because on a few of the prototypes it has worked just fine.
+//Some tweaking will be needed for the v2.1 boards.
 //
-//By default, MaxFiles is set to 20 files, at 13 character length (4 characters for file extension,
+//By default, MaxFiles is set to 18 files, at 13 character length (4 characters for file extension,
 //8 for name, and one for null terminator). Increasing MaxFiles increases global variable usage
-//which is already pretty high (73%). In my tests, around 75-80% memory usage makes the badge do
+//which is already pretty high (74%). In my tests, around 75-80% memory usage makes the badge do
 //really weird things, starting with not loading images properly and continuing on to errant reading
 //of stick inputs. I don't know if the SD card is safe in such conditions.
 //
 //Theoretically, you could remove the extension from the filename list as we already know they're bmp.
 //This would increase the maximum number of files loadable for the same space - 260 characters is used
 //currently for 20 files at 13 characters. 29 files at 9 characters takes 261, and 30 uses 270.
-//This is my next goal for the program, to make it more memory efficient.
+//This is one of my goals for the program, but currently not a super high priority.
 //
 //And speaking of memory efficiency - There are numerous Serial calls throught the program.
 //They have all been commented out. Serial calls use up quite a lot of global variable usage,
@@ -39,11 +45,12 @@
 //the 75%-80% mark.
 //
 //This version of the code is the "Launch Ready" code. It's what I'll be loading up onto the V2s
-//that I'll be selling at BronyCon!
+//that I'll be selling at BronyCon.
 //
-//This wall of commentary was updated on June 10, 2016 by Andon.
+//This wall of commentary was updated on July 4, 2016 by Andon.
 //Happy hacking!
 
+#include <avr/sleep.h>
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
@@ -54,8 +61,8 @@
 #define TFT_CS   9    // Chip select line for TFT display
 #define TFT_DC   8    // Data/command line for TFT
 #define TFT_RST  5    // Reset line for TFT (or connect to +5V)
-#define MaxFiles 20   // Maximum number of files to load.
-#define FileLen  13   // Maimum length of file name
+#define MaxFiles 18   // Maximum number of files to load.
+#define FileLen  13   // Maximum length of file name
 #define TFT_DIM  6    // TFT Backlight dimmer
 #define S_UP     A1   // Navigation stick up/Increase brightness
 #define S_DOWN   4    // Navigation stick down/Dcecrease Brightness
@@ -63,6 +70,8 @@
 #define S_RIGHT  2    // Navigation stick right (Facing back) - Change badge/image
 #define S_SEL    3   // Navigation stick select - Change mode
 #define STEPSPD  5000 // MS between slideshow changes. Default is 5 seconds.
+#define LOWBATT  2650 // millivolts at which the low battery alarm shows up
+#define POWOFF   2500 // millivolts at which the board turns to a low-power state.
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -114,7 +123,7 @@ void setup()
   delay(100);
   //Check battery voltage.
   vcc = readVcc();
-  if (vcc < 2200){
+  if (vcc < LOWBATT){
     //Battery voltage < 2.2v
     //Single AAA cell drops sharply at 1.1v, and we have two in series.
     //Battery depletion is imminent, as BOD kicks in at 1.8v
@@ -161,7 +170,34 @@ void setup()
 }
 
 void loop(){
-  //First, check if we have inserted an SD card
+  //Check the battery voltage.
+  //This won't work if we're powered via FTDI as it pulls VCC voltage
+  //Generally, if we're powered via FTDI, battery voltage is irrelevant.
+  vcc = readVcc(); //Returns the millivoltage of the batteries.
+  if (vcc < POWOFF) {
+    //We're at a battery voltage where it's not useful to remain powered.
+    //Turn off the screen backlight
+    analogWrite(TFT_DIM, 0);
+    //Set our mode to Badge mode to ensure we don't try to access SD card.
+    mode = 0;
+    //Usually we'd draw a badge, but the screen is off so that's irrelevant.
+    //Instead, we'll put the device in a "sleep" mode that'll render it inert
+    //until powered off and back on.
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sleep_enable();
+    sleep_mode();
+  }
+  if ((vcc < LOWBATT) and (lowbat == false)) {
+    //Same low battery check as startup, except ignored if lowbat is already set.
+    lowbat = true;
+  }
+  else if ((vcc > (LOWBATT + 100)) and (lowbat == true)) {
+    //If we previously had a low battery and the voltage is now much higher,
+    //Change lowbat to false. So that we don't get rapid switches
+    //with voltage fluctuation, this is a bit higher than the lowbat threshold.
+    lowbat = false;
+  }
+  //Now, check if we have inserted an SD card
   int SDCard = digitalRead(SD_CD);
   if ((SDInit) && (SDCard == 1)) {
     //SDCard has been removed.
@@ -199,20 +235,6 @@ void loop(){
     delay(1000);
     drawBadge(badge);
   }  
-  //Now, check the battery voltage.
-  //This won't work if we're powered via FTDI
-  //Generally, if we're powered via FTDI, battery voltage is irrelevant.
-  vcc = readVcc(); //Returns the millivoltage of the batteries.
-  if ((vcc < 2200) and (lowbat == false)) {
-    //Same low battery check as startup, except ignored if lowbat is already set.
-    lowbat = true;
-  }
-  else if ((vcc > 2500) and (lowbat == true)) {
-    //If we previously had a low battery and the voltage is now much higher,
-    //Change lowbat to false. So that we don't get rapid switches
-    //with voltage fluctuation, this is a bit higher than the lowbat threshold.
-    lowbat = false;
-  }
   //Now go to command reading.
   int up = digitalRead(S_UP);
   int down = digitalRead(S_DOWN);
@@ -335,7 +357,7 @@ void loop(){
       bmpDraw(filelist[image], 0, 0);
     }
   }
-  #define DelayTime 250
+  #define DelayTime 200
   delay(DelayTime);
   if (mode == 1){
     steps ++;
@@ -352,9 +374,9 @@ void loop(){
   }
 }
 
-void setLight(int l) {
+void setLight(int lt) {
   // Sets the backlight to a specified brightness
-  analogWrite(TFT_DIM, (l*10)+5);
+  analogWrite(TFT_DIM, (lt*10)+5);
   // AnalogWrite uses values from 0-255. We want the badge to always be visible, so set a minimum value of 5.
   // After that, there are 26 levels of brightness, at 10 each (Including one at 0).
 }
