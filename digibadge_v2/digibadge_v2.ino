@@ -98,20 +98,20 @@ void setup()
   tft.setTextColor(ST7735_WHITE);
   tft.setTextWrap(false);
   tft.setTextSize(1);
-  tft.setCursor(0,0);
-  tft.print("DigiBadge V2 Initializing.");
+  tft.setCursor(0, 0);
+  tft.print(F("DigiBadge V2 Initializing."));
   //Don't turn the light on until screen has started.
   //This will prevent seeing any left over image artifacts.
   pinMode(TFT_DIM, OUTPUT);
   setLight(bright);
-  tft.setCursor(0,16);
-  tft.print("Checking SD Card...");
+  tft.setCursor(0, 16);
+  tft.print(F("Checking SD Card..."));
   pinMode(SD_CD, INPUT_PULLUP);
   tft.setCursor(0, 24);
   SDInit = startSD();
   tft.setCursor(0, 32);
   //Initialize the navigation stick.
-  tft.print("Initializing stick"); 
+  tft.print("Initializing stick");
   pinMode(S_UP, INPUT_PULLUP);
   pinMode(S_DOWN, INPUT_PULLUP);
   pinMode(S_LEFT, INPUT_PULLUP);
@@ -119,49 +119,49 @@ void setup()
   pinMode(S_SEL, INPUT_PULLUP);
   tft.setCursor(0, 40);
   delay(100);
-  tft.print("Stick initialized");
+  tft.print(F("Stick initialized"));
   delay(100);
   //Check battery voltage.
   vcc = readVcc();
-  if (vcc < LOWBATT){
+  if (vcc < LOWBATT) {
     //Battery voltage < 2.2v
     //Single AAA cell drops sharply at 1.1v, and we have two in series.
     //Battery depletion is imminent, as BOD kicks in at 1.8v
     lowbat = true;
   }
   //Get the full volts.
-  int v1 = vcc/1000;
+  int v1 = vcc / 1000;
   //Remove the full volts, then get the partial volts.
   //Dividing by 100 turns this into a single decimal, IE 2.9v
-  int v2 = (vcc - (v1*1000)) / 100;
+  int v2 = (vcc - (v1 * 1000)) / 100;
   tft.setCursor(0, 54);
-  tft.print("Battery: ");
+  tft.print(F("Battery: "));
   if (lowbat) {
     //If our battery is low, print the battery voltage in red.
     tft.setTextColor(ST7735_RED);
   }
   tft.print(v1);
-  tft.print(".");
+  tft.print(F("."));
   tft.print(v2);
   //Revert to normal text color
   tft.setTextColor(ST7735_WHITE);
-  tft.print("v");
+  tft.print(F("v"));
   //Print information.
   tft.setCursor(0, 62);
-  tft.print("For code & schematics");
+  tft.print(F("For code & schematics"));
   tft.setCursor(0, 70);
-  tft.print("visit www.matchfire.net");
+  tft.print(F("visit www.matchfire.net"));
   delay(100);
   tft.setCursor(0, 86);
-  tft.print("Created by Jason LeClare");
+  tft.print(F("Created by Jason LeClare"));
   tft.setCursor(0, 94);
-  tft.print("2016");
+  tft.print(F("2016"));
   delay(2500);
   //Initial badge or image draw
   //By default this will be the Yellow Badge
   //But if Mode, Image, and/or Badge are changed above
   //Then this will change.
-  if (mode == 0){
+  if (mode == 0) {
     drawBadge(badge);
   }
   else {
@@ -169,7 +169,7 @@ void setup()
   }
 }
 
-void loop(){
+void loop() {
   //Check the battery voltage.
   //This won't work if we're powered via FTDI as it pulls VCC voltage
   //Generally, if we're powered via FTDI, battery voltage is irrelevant.
@@ -205,15 +205,15 @@ void loop(){
     //Set mode to Badge mode.
     tft.fillScreen(ST7735_BLACK);
     tft.setTextColor(ST7735_WHITE);
-    tft.setCursor(0,0);
-    tft.print("SD Card Removed");
-    tft.setCursor(0,8);
-    tft.print("Returning to badge mode...");
+    tft.setCursor(0, 0);
+    tft.print(F("SD Card Removed"));
+    tft.setCursor(0, 8);
+    tft.print(F("Returning to badge mode..."));
     delay(1000);
     mode = 0; //Set the mode
     drawBadge(badge);
   }
-  if ((! SDInit) && (SDCard == 0)){
+  if ((! SDInit) && (SDCard == 0)) {
     //We have an uninitialized SD card.
     //Initialize it.
     //NOTE: This will only work ONCE, unless
@@ -223,25 +223,25 @@ void loop(){
     //before distribution or sale.
     tft.fillScreen(ST7735_BLACK);
     tft.setTextColor(ST7735_WHITE);
-    tft.setCursor(0,0);
-    tft.print("New SD card found.");
-    tft.setCursor(0,8);
-    tft.print("Checking SD Card...");
+    tft.setCursor(0, 0);
+    tft.print(F("New SD card found."));
+    tft.setCursor(0, 8);
+    tft.print(F("Checking SD Card..."));
     tft.setCursor(0, 16);
     SDInit = startSD();
     tft.setCursor(0, 24);
-    tft.print("Returning to Badge mode...");
+    tft.print(F("Returning to Badge mode..."));
     //Wait so we can actually read it.
     delay(1000);
     drawBadge(badge);
-  }  
+  }
   //Now go to command reading.
   int up = digitalRead(S_UP);
   int down = digitalRead(S_DOWN);
   int right = digitalRead(S_RIGHT);
   int left = digitalRead(S_LEFT);
   int sel = digitalRead(S_SEL);
-  if (up == LOW){
+  if (up == LOW) {
     //Increase brightness, to max of 10.
     //Serial.println("Increasing brightness");
     if (bright < 25) {
@@ -249,7 +249,7 @@ void loop(){
       setLight(bright);
     }
   }
-  else if (down == LOW){
+  else if (down == LOW) {
     //Decrease brightness, to min of 1)
     //Serial.println("Decreasing Brightness");
     if (bright > 0) {
@@ -263,15 +263,15 @@ void loop(){
     if (SDCard == 1) {
       //No SDCard found
       tft.fillScreen(ST7735_BLACK);
-      tft.setCursor(0,0);
+      tft.setCursor(0, 0);
       tft.setTextColor(ST7735_WHITE);
-      tft.print("No SD card found.");
-      tft.setCursor(0,8);
-      tft.print("Returning to badge mode...");
+      tft.print(F("No SD card found."));
+      tft.setCursor(0, 8);
+      tft.print(F("Returning to badge mode..."));
       delay(1000);
     }
     //Serial.println("Changing mode");
-    if ((mode < 2) && (SDCard != 1)){
+    if ((mode < 2) && (SDCard != 1)) {
       mode ++;
     }
     else {
@@ -279,7 +279,7 @@ void loop(){
       mode = 0;
     }
     //Draw the appropriate changes.
-    if (mode == 0){
+    if (mode == 0) {
       //Badge mode. Draw the appropriate badge.
       drawBadge(badge);
     }
@@ -296,17 +296,17 @@ void loop(){
     if (mode == 0) {
       //Badge Mode
       //Serial.println("Previous Badge");
-      if (badge > 0){
+      if (badge > 0) {
         badge --;
       }
       else {
         badge = 2;
-      }      
+      }
     }
     else {
       //Slideshow or Image mode
       //Serial.println("Previous Image");
-      if (image > 0){
+      if (image > 0) {
         image --;
       }
       else {
@@ -314,7 +314,7 @@ void loop(){
       }
     }
     //Draw the appropriate changes.
-    if (mode == 0){
+    if (mode == 0) {
       //Badge mode. Draw the appropriate badge.
       drawBadge(badge);
     }
@@ -347,7 +347,7 @@ void loop(){
       }
     }
     //Draw the appropriate changes.
-    if (mode == 0){
+    if (mode == 0) {
       //Badge mode. Draw the appropriate badge.
       drawBadge(badge);
     }
@@ -357,12 +357,12 @@ void loop(){
       bmpDraw(filelist[image], 0, 0);
     }
   }
-  #define DelayTime 200
+#define DelayTime 200
   delay(DelayTime);
-  if (mode == 1){
+  if (mode == 1) {
     steps ++;
-    if ((steps * DelayTime) >= STEPSPD){
-      if (image < fnum - 2){
+    if ((steps * DelayTime) >= STEPSPD) {
+      if (image < fnum - 2) {
         image ++;
       }
       else {
@@ -376,7 +376,7 @@ void loop(){
 
 void setLight(int lt) {
   // Sets the backlight to a specified brightness
-  analogWrite(TFT_DIM, (lt*10)+5);
+  analogWrite(TFT_DIM, (lt * 10) + 5);
   // AnalogWrite uses values from 0-255. We want the badge to always be visible, so set a minimum value of 5.
   // After that, there are 26 levels of brightness, at 10 each (Including one at 0).
 }
@@ -387,11 +387,11 @@ void drawLowBat(int x, int y) {
   //However, it IS designed to be a bit out of the way so it won't cover up a badge.
   //It fills a black background and adds the battery on top of that
   //To make the symbol visible on all badges and images.
-  tft.fillRect(x,y,x+22,y+11, ST7735_BLACK);
-  tft.fillRect(x+2,y+2,x+16,y+7, ST7735_RED);
-  tft.fillRect(x+18,y+4,x+2,y+3, ST7735_RED);
-  tft.drawLine(x+8,y+10,x+13,y, ST7735_BLACK);
-  tft.drawLine(x+7,y+10,x+12,y, ST7735_BLACK);
+  tft.fillRect(x, y, x + 22, y + 11, ST7735_BLACK);
+  tft.fillRect(x + 2, y + 2, x + 16, y + 7, ST7735_RED);
+  tft.fillRect(x + 18, y + 4, x + 2, y + 3, ST7735_RED);
+  tft.drawLine(x + 8, y + 10, x + 13, y, ST7735_BLACK);
+  tft.drawLine(x + 7, y + 10, x + 12, y, ST7735_BLACK);
 }
 
 void drawBadge(int b) {
@@ -408,15 +408,15 @@ void drawBadge(int b) {
     tft.fillRect(53, 18, 54, 54, ST7735_BLACK);
     tft.fillRect(56, 21, 48, 48, ST7735_WHITE);
     tft.setCursor(54, 85);
-    tft.print("RED");
+    tft.print(F("RED"));
   }
-  else if (b == 2){
+  else if (b == 2) {
     //Green badge
     tft.fillScreen(ST7735_GREEN);
     tft.fillCircle(80, 45, 27, ST7735_BLACK);
     tft.fillCircle(80, 45, 24, ST7735_WHITE);
     tft.setCursor(36, 85);
-    tft.print("GREEN");
+    tft.print(F("GREEN"));
   }
   else {
     //Yellow badge.
@@ -425,33 +425,33 @@ void drawBadge(int b) {
     tft.fillRect(22, 26, 116, 25, ST7735_BLACK);
     tft.fillRect(25, 29, 110, 19, ST7735_WHITE);
     tft.setCursor(28, 85);
-    tft.print("YELLOW");
+    tft.print(F("YELLOW"));
   }
   //Set colors back to default.
   tft.setTextSize(1);
   tft.setTextColor(ST7735_WHITE);
   if (lowbat) {
     //If our battery is low, show the low battery symbol
-    drawLowBat(0,0);
+    drawLowBat(0, 0);
   }
 }
 
-bool startSD(){
+bool startSD() {
   //Serial.println("Detecting SD card...");
   int SDCard = digitalRead(SD_CD);
   if (SDCard == 1) {
     //Serial.println("No SD card found.");
-    tft.print("No SD card found");
+    tft.print(F("No SD card found"));
     return false;
   }
   //Serial.println("SD Card found. Attempting load.");
-  if (! SD.begin(SD_CS)){
+  if (! SD.begin(SD_CS)) {
     //Serial.println("SD Card load failed.");
-    tft.print("SD Card load failed");
+    tft.print(F("SD Card load failed"));
     return false;
   }
   //Serial.println("SD Card loaded successfully.");
-  tft.print("SD Card loaded ");
+  tft.print(F("SD Card loaded "));
   //Set the file number to 0. This will allow re-initializing of SD cards without adding files.
   //This will overwrite any old filenames, and even if there are fewer files, nothing beyond fnum
   //will be loaded.
@@ -460,12 +460,12 @@ bool startSD(){
   listSDFiles();
   //Serial.print(fnum);
   tft.print(fnum);
-  tft.print(" files.");
+  tft.print(F(" files."));
   //Serial.println(" Files found.");
   return true;
 }
 
-void listSDFiles(){
+void listSDFiles() {
   File dir = SD.open("/");
   //Serial.println("Finding files on SD card");
   while (true) {
@@ -482,7 +482,7 @@ void listSDFiles(){
       //Serial.print(entry.name());
       //Serial.println(" found");
       String fname = String(entry.name());
-      if (fname.endsWith(".BMP")){
+      if (fname.endsWith(".BMP")) {
         //File is a bmp file. Check the length.
         if (sizeof(entry.name()) < FileLen) {
           //Add it to the list
@@ -515,10 +515,10 @@ void listSDFiles(){
   for (int x = 0; x < fnum; x++) {
     Serial.println(filelist[x]);
   }
-}*/
+  }*/
 
 #define BUFFPIXEL 20 //Pixel buffer. I haven't seen any performance gains from increasing this.
-                     //Going beyond about 50 tends to make the whole thing just not work, as well.
+//Going beyond about 50 tends to make the whole thing just not work, as well.
 
 void bmpDraw(char *filename, uint8_t x, uint8_t y) {
 
@@ -527,7 +527,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   uint8_t  bmpDepth;              // Bit depth (currently must be 24)
   uint32_t bmpImageoffset;        // Start of image data in file
   uint32_t rowSize;               // Not always = bmpWidth; may have padding
-  uint8_t  sdbuffer[3*BUFFPIXEL]; // pixel buffer (R+G+B per pixel)
+  uint8_t  sdbuffer[3 * BUFFPIXEL]; // pixel buffer (R+G+B per pixel)
   uint8_t  buffidx = sizeof(sdbuffer); // Current position in sdbuffer
   boolean  goodBmp = false;       // Set to true on valid header parse
   boolean  flip    = true;        // BMP is stored bottom-to-top
@@ -535,7 +535,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   uint8_t  r, g, b;
   uint32_t pos = 0, startTime = millis();
 
-  if((x >= tft.width()) || (y >= tft.height())) return;
+  if ((x >= tft.width()) || (y >= tft.height())) return;
 
   //Serial.println();
   //Serial.print("Loading image '");
@@ -549,7 +549,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   }
 
   // Parse BMP header
-  if(read16(bmpFile) == 0x4D42) { // BMP signature
+  if (read16(bmpFile) == 0x4D42) { // BMP signature
     //Serial.print("File size: "); Serial.println(read32(bmpFile));
     read32(bmpFile); //Commented out Serial to reduce variable size.
     (void)read32(bmpFile); // Read & ignore creator bytes
@@ -560,10 +560,10 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
     read32(bmpFile); //Commented out Serial to reduce variable size
     bmpWidth  = read32(bmpFile);
     bmpHeight = read32(bmpFile);
-    if(read16(bmpFile) == 1) { // # planes -- must be '1'
+    if (read16(bmpFile) == 1) { // # planes -- must be '1'
       bmpDepth = read16(bmpFile); // bits per pixel
       //Serial.print("Bit Depth: "); Serial.println(bmpDepth);
-      if((bmpDepth == 24) && (read32(bmpFile) == 0)) { // 0 = uncompressed
+      if ((bmpDepth == 24) && (read32(bmpFile) == 0)) { // 0 = uncompressed
 
         goodBmp = true; // Supported BMP format -- proceed!
         //Serial.print("Image size: ");
@@ -576,7 +576,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
 
         // If bmpHeight is negative, image is in top-down order.
         // This is not canon but has been observed in the wild.
-        if(bmpHeight < 0) {
+        if (bmpHeight < 0) {
           bmpHeight = -bmpHeight;
           flip      = false;
         }
@@ -584,13 +584,13 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
         // Crop area to be loaded
         w = bmpWidth;
         h = bmpHeight;
-        if((x+w-1) >= tft.width())  w = tft.width()  - x;
-        if((y+h-1) >= tft.height()) h = tft.height() - y;
+        if ((x + w - 1) >= tft.width())  w = tft.width()  - x;
+        if ((y + h - 1) >= tft.height()) h = tft.height() - y;
 
         // Set TFT address window to clipped image bounds
-        tft.setAddrWindow(x, y, x+w-1, y+h-1);
+        tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
 
-        for (row=0; row<h; row++) { // For each scanline...
+        for (row = 0; row < h; row++) { // For each scanline...
 
           // Seek to start of scan line.  It might seem labor-
           // intensive to be doing this on every line, but this
@@ -598,16 +598,16 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
           // and scanline padding.  Also, the seek only takes
           // place if the file position actually needs to change
           // (avoids a lot of cluster math in SD library).
-          if(flip) // Bitmap is stored bottom-to-top order (normal BMP)
+          if (flip) // Bitmap is stored bottom-to-top order (normal BMP)
             pos = bmpImageoffset + (bmpHeight - 1 - row) * rowSize;
           else     // Bitmap is stored top-to-bottom
             pos = bmpImageoffset + row * rowSize;
-          if(bmpFile.position() != pos) { // Need seek?
+          if (bmpFile.position() != pos) { // Need seek?
             bmpFile.seek(pos);
             buffidx = sizeof(sdbuffer); // Force buffer reload
           }
 
-          for (col=0; col<w; col++) { // For each pixel...
+          for (col = 0; col < w; col++) { // For each pixel...
             // Time to read more pixel data?
             if (buffidx >= sizeof(sdbuffer)) { // Indeed
               bmpFile.read(sdbuffer, sizeof(sdbuffer));
@@ -618,25 +618,25 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
             b = sdbuffer[buffidx++];
             g = sdbuffer[buffidx++];
             r = sdbuffer[buffidx++];
-            tft.pushColor(tft.Color565(r,g,b));
+            tft.pushColor(tft.Color565(r, g, b));
           } // end pixel
         } // end scanline
         /* Commented out to save variable space.
-        Serial.print("Loaded in ");
-        Serial.print(millis() - startTime);
-        Serial.println(" ms");
+          Serial.print("Loaded in ");
+          Serial.print(millis() - startTime);
+          Serial.println(" ms");
         */
       } // end goodBmp
     }
   }
   //If in Slideshow mode, add a "Play" indicator to the top/right
-  if (mode == 1){
+  if (mode == 1) {
     tft.fillTriangle(146, 2, 157, 13, 146, 24, ST7735_BLACK);
     tft.fillTriangle(147, 5, 155, 13, 147, 21, ST7735_WHITE);
   }
   if (lowbat) {
     //If our battery is low, show the low battery symbol
-    drawLowBat(0,0);
+    drawLowBat(0, 0);
   }
   bmpFile.close();
   //if(!goodBmp) Serial.println("BMP format not recognized.");
@@ -669,11 +669,10 @@ long readVcc() {
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
   delay(2); //Allow Vref to settle.
   ADCSRA |= _BV(ADSC); // Start conversion
-  while (bit_is_set(ADCSRA,ADSC)); // measuring
-  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+  while (bit_is_set(ADCSRA, ADSC)); // measuring
+  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH
   uint8_t high = ADCH; // unlocks both
-  long result = (high<<8) | low;
+  long result = (high << 8) | low;
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return result; // Vcc in millivolts
 }
-
