@@ -1,0 +1,4 @@
+Adafruit_GFX.h : https://github.com/adafruit/Adafruit-GFX-Library
+Adafruit_ST7735.h : https://github.com/adafruit/Adafruit-ST7735-Library
+SPI.h : https://www.arduino.cc/en/Reference/SPI
+SD.h : https://www.arduino.cc/en/Reference/SD
