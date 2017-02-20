@@ -75,9 +75,11 @@
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
-int fnum = 0;
-char filelist[MaxFiles][FileLen];
+//int fnum = 0;
+//char filelist[MaxFiles][FileLen];
 bool SDInit = false;
+int filecount = 0; //Number of discovered images.
+int curimg = 1;
 int mode = 0; //0 is Badge, 1 is Slideshow, 2 is Select Image
 int badge = 0; // 0 is Yellow, 1 is Red, 2 is Green
 int bright = 13; //Brightness from 0-25, auto-set in middle.
@@ -165,7 +167,8 @@ void setup()
     drawBadge(badge);
   }
   else {
-    bmpDraw(filelist[image], 0, 0);
+    //bmpDraw(filelist[image], 0, 0);
+    newDrawBMP(curimg, 0, 0);
   }
 }
 
@@ -286,7 +289,8 @@ void loop() {
     else {
       //Slideshow or Image mode.
       steps = 0; //Reset the counter.
-      bmpDraw(filelist[image], 0, 0);
+      newDrawBMP(curimg, 0, 0);
+      //bmpDraw(filelist[image], 0, 0);
     }
   }
   if (left == LOW) {
@@ -306,11 +310,17 @@ void loop() {
     else {
       //Slideshow or Image mode
       //Serial.println("Previous Image");
-      if (image > 0) {
+      /*if (image > 0) {
         image --;
       }
       else {
         image = fnum - 1;
+      }*/
+      if (curimg > 1) {
+        curimg --;
+      }
+      else {
+        curimg = filecount;
       }
     }
     //Draw the appropriate changes.
@@ -321,7 +331,8 @@ void loop() {
     else {
       //Slideshow or Image mode.
       steps = 0; //Reset the counter.
-      bmpDraw(filelist[image], 0, 0);
+      //bmpDraw(filelist[image], 0, 0);
+      newDrawBMP(curimg, 0, 0);
     }
   }
   if (right == LOW) {
@@ -339,11 +350,17 @@ void loop() {
     else {
       //Slideshow or image mode
       //Serial.println("Next Image");
-      if (image < (fnum - 1)) {
+      /*if (image < (fnum - 1)) {
         image ++;
       }
       else {
         image = 0;
+      }*/
+      if (curimg < filecount){
+        curimg ++;
+      }
+      else {
+        curimg = 1;
       }
     }
     //Draw the appropriate changes.
@@ -354,7 +371,8 @@ void loop() {
     else {
       //Slideshow or Image mode.
       steps = 0; //Reset the counter.
-      bmpDraw(filelist[image], 0, 0);
+      //bmpDraw(filelist[image], 0, 0);
+      newDrawBMP(curimg, 0, 0);
     }
   }
 #define DelayTime 200
@@ -362,14 +380,24 @@ void loop() {
   if (mode == 1) {
     steps ++;
     if ((steps * DelayTime) >= STEPSPD) {
-      if (image < fnum - 2) {
+      //Slideshow mode: Change images.
+      /*if (image < fnum - 2) {
         image ++;
       }
       else {
         image = 0;
       }
       steps = 0;
-      bmpDraw(filelist[image], 0, 0);
+      bmpDraw(filelist[image], 0, 0);*/
+      //If we're less than the maximum, go to the next image.
+      //Otherwise, reset to the first image
+      if (curimg < filecount) {
+        curimg ++;
+      }
+      else {
+        curimg = 1;
+      }
+      newDrawBMP(curimg, 0, 0);
     }
   }
 }
@@ -455,17 +483,54 @@ bool startSD() {
   //Set the file number to 0. This will allow re-initializing of SD cards without adding files.
   //This will overwrite any old filenames, and even if there are fewer files, nothing beyond fnum
   //will be loaded.
-  fnum = 0;
+  filecount = 0;
   //Serial.println("Loading list of BMP files.");
-  listSDFiles();
-  //Serial.print(fnum);
-  tft.print(fnum);
+  newDrawBMP(-1, 0, 0);
+  //Serial.print(filecount);
+  tft.print(filecount);
   tft.print(F(" files."));
   //Serial.println(" Files found.");
   return true;
 }
 
-void listSDFiles() {
+void newDrawBMP(int img, int x, int y) {
+  //Either finds a file at located position
+  //OR simply counts them, if img is -1
+  int count = 0;
+  File dir = SD.open("/"); //Open Directory
+  dir.rewindDirectory(); //Rewind everything, because sometimes it gets funky.
+  File fi = dir.openNextFile(); //Open the first file.
+  while (fi) {
+    //As long as we have a file open...
+    if (! fi.isDirectory()) {
+      //A file. Check if it is a BMP.
+      if (String(fi.name()).endsWith(".BMP")) {
+        //It's a BMP image
+        count++; //Count it
+        if ((count == img) && (img >= 1)) {
+          //This is the file we're looking for.
+          fi.close(); //Close it.
+          //Serial.print(F("Loaded File: "));
+          //Serial.println(fi.name());
+          bmpDraw(fi.name(), x, y); //Display it.
+          break; //No need to go searching anymore.
+        }
+      }
+    }
+    fi.close(); //Close the file, open the next.
+    delay(10); //Short delay, just to be safe.
+    fi = dir.openNextFile();
+  }
+  dir.close(); //Close the directory
+  if (img < 1) {
+    //We were counting files.
+    //Serial.print(F("Updating filecount to "));
+    filecount = count;
+    //Serial.println(filecount);
+  }
+}
+
+/*void listSDFiles() {
   File dir = SD.open("/");
   //Serial.println("Finding files on SD card");
   while (true) {
@@ -505,7 +570,7 @@ void listSDFiles() {
     delay(10);
   }
   dir.close();
-}
+}*/
 
 /*void listfiles(){
   //Commented out to save space.
