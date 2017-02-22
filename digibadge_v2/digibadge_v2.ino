@@ -397,6 +397,7 @@ void loop() {
       else {
         curimg = 1;
       }
+      steps = 0;
       newDrawBMP(curimg, 0, 0);
     }
   }
